@@ -6,31 +6,9 @@ export class Home extends React.Component {
 		super(props);
 		this.player = null;
 		this.state = {
-			songs: [
-				{
-					title: "Blame Canada",
-					id: "south-park",
-					author: "Kyle",
-					url:
-						"https://assets.breatheco.de/apis/sound/files/cartoons/songs/south-park.mp3"
-				},
-				{
-					title: "Thunder Cats Theme",
-					id: "thundercats",
-					author: "Moonra",
-					url:
-						"https://assets.breatheco.de/apis/sound/files/cartoons/songs/thundercats.mp3"
-				},
-				{
-					title: "X-Men Theme",
-					id: "x-men",
-					author: "Profesor X",
-					url:
-						"https://assets.breatheco.de/apis/sound/files/cartoons/songs/x-men.mp3"
-				}
-			],
+			songs: [],
 			currentSong: {},
-
+			playLists: [],
 			currentButton: "",
 			j: 0,
 			shuffle: "",
@@ -68,6 +46,7 @@ export class Home extends React.Component {
 		this.shuffle.style.display = "none";
 		this.shuffleOff.style.display = "inline";
 	};
+
 	randomOff = () => {
 		this.setState({ shuffle: false });
 		this.shuffle.style.display = "inline";
@@ -92,10 +71,11 @@ export class Home extends React.Component {
 			vol = 0;
 		}
 
+		let newvol = vol / 100;
 		this.setState({
 			volume: vol
 		});
-		//this.player.current.volume = vol;
+		this.player.volume = newvol;
 	};
 
 	volBar = vol => {
@@ -103,81 +83,137 @@ export class Home extends React.Component {
 		//this.player.current.volume = vol;
 	};
 
-	componentDidMount() {}
+	componentDidMount() {
+		this.shuffle.style.display = "none";
+		fetch("https://assets.breatheco.de/apis/sound/all")
+			.then(function(response) {
+				if (!response.ok) {
+					throw Error(response.statusText);
+				}
+				return response.json();
+			})
+			.then(jsonifiedResponse => {
+				let allLists = Object.values(jsonifiedResponse);
+				this.setState({
+					playLists: allLists,
+					songs: allLists[1]
+				});
+			})
+
+			.catch(function(error) {
+				console.log("ya broke it", error);
+			});
+	}
 
 	render() {
 		return (
-			<div>
-				<ol>
-					{this.state.songs.map((song, i) => {
-						return (
-							<li onClick={() => this.playSong(i)} key={i}>
-								{song.title} - {song.author}
-							</li>
-						);
-					})}
-				</ol>
+			<div className="container d-flex">
+				<div className="player">
+					<div className=" header">Playlist Title</div>
+					<div
+						className="row list overflow-auto scrollbar"
+						id="style-4">
+						<ol className="col">
+							{this.state.songs.map((song, i) => {
+								return (
+									<li
+										className={
+											"row " +
+											(i == this.state.j ? "hold" : "")
+										}
+										onClick={() => this.playSong(i)}
+										key={i}>
+										<div className="col-2">
+											{song.category}
+										</div>
+										-
+										<div className="col-auto">
+											{song.name}
+										</div>
+										<div />
+									</li>
+								);
+							})}
+						</ol>
+					</div>{" "}
+					<div className="mediabar">
+						<div className="nowplaying">
+							<div className="title">
+								{this.state.currentSong.name}
+							</div>
+							<div className="category">
+								{this.state.currentSong.category}
+							</div>
+						</div>
+						<div className="playbar ">
+							<a
+								ref={el => (this.shuffleOff = el)}
+								onClick={() => this.randomOff()}>
+								<i className="fas fa-random func " />
+							</a>
+							<a
+								ref={el => (this.shuffle = el)}
+								onClick={() => this.random()}>
+								<i className="fas fa-sort-alpha-down  func" />
+							</a>
 
-				<div>
-					<a onClick={() => this.playSong(this.state.j - 1)}>
-						<i className="fas fa-caret-square-left" />
-					</a>
-					<a
-						ref={el => (this.playButton = el)}
-						onClick={() => this.playSong(this.state.j)}>
-						<i className="fas fa-play" />
-					</a>
+							<a onClick={() => this.playSong(this.state.j - 1)}>
+								<i className="fas fa-backward skips" />
+							</a>
+							<a
+								ref={el => (this.playButton = el)}
+								onClick={() => this.playSong(this.state.j)}>
+								<i className="fas fa-play bigbutton" />
+							</a>
 
-					<a
-						style={{ display: "none" }}
-						ref={el => (this.pauseButton = el)}
-						onClick={() => this.pauseSong()}>
-						<i className="fas fa-pause-circle" />
-					</a>
-					<a onClick={() => this.playSong(this.state.j + 1)}>
-						<i className="fas fa-caret-square-right" />
-					</a>
-					<a
-						ref={el => (this.shuffleOff = el)}
-						onClick={() => this.randomOff()}>
-						<i className="fas fa-random" />
-					</a>
-					<a
-						ref={el => (this.shuffle = el)}
-						onClick={() => this.random()}>
-						<i className="fas fa-sort-alpha-down" />
-					</a>
-					<a
-						ref={el => (this.loop = el)}
-						onClick={() => this.looper(this.state.looping)}>
-						<i className="fas fa-undo" />
-					</a>
+							<a
+								style={{ display: "none" }}
+								ref={el => (this.pauseButton = el)}
+								onClick={() => this.pauseSong()}>
+								<i className="fas fa-pause-circle bigbutton" />
+							</a>
+							<a onClick={() => this.playSong(this.state.j + 1)}>
+								<i className="fas fa-forward skips" />
+							</a>
 
-					<a
-						ref={el => (this.minus = el)}
-						onClick={() => this.setVolume(this.state.volume - 1)}>
-						<i className="fas fa-minus" />
-					</a>
-					<a
-						ref={el => (this.number = el)}
-						onChange={() => this.volBar(this.state.volume)}>
-						{this.state.volume}
-					</a>
-					<a
-						ref={el => (this.plus = el)}
-						onClick={() => this.setVolume(this.state.volume + 1)}>
-						<i className="fas fa-plus" />
-					</a>
+							<a
+								ref={el => (this.loop = el)}
+								onClick={() => this.looper(this.state.looping)}>
+								<i className="fas fa-undo func" />
+							</a>
+						</div>
+						<div className="volume col-auto">
+							<a
+								ref={el => (this.minus = el)}
+								onClick={() =>
+									this.setVolume(this.state.volume - 1)
+								}>
+								<i className="fas fa-minus" />
+							</a>
+							<a
+								ref={el => (this.number = el)}
+								onChange={() => this.volBar(this.state.volume)}>
+								{this.state.volume}
+							</a>
+							<a
+								ref={el => (this.plus = el)}
+								onClick={() =>
+									this.setVolume(this.state.volume + 1)
+								}>
+								<i className="fas fa-plus" />
+							</a>
+						</div>
+						<audio
+							autoPlay
+							loop={this.state.looping}
+							src={
+								"https://assets.breatheco.de/apis/sound/" +
+								this.state.currentSong.url
+							}
+							ref={el => (this.player = el)}
+						/>
+					</div>
 				</div>
-				<audio
-					volume={this.state.volume}
-					loop={this.state.looping}
-					src={this.state.currentSong.url}
-					ref={el => (this.player = el)}
-				/>
-
-				<div>{this.state.currentSong.title}</div>
-				<div>{this.state.currentSong.author}</div>
 			</div>
 		);
 	}
